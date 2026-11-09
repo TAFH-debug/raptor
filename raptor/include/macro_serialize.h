@@ -1,6 +1,5 @@
 #pragma once
 
-#include <serializable.h>
 #include <binary_io.h>
 #include <macro_cycle.h>
 
