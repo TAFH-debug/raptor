@@ -3,6 +3,8 @@
 #include <network_io.h>
 #include <asio.hpp>
 
+#include <iostream>
+
 class Vector : public raptor::Serializable {
 public:
     int x;
@@ -24,11 +26,18 @@ public:
 using namespace raptor;
 
 int main() {
-    raptor::RaptorServer server;
+    asio::io_context io;
 
-    A a;
-    a.vec.x = 200;
-    a.vec.y = 300;
-    a.vec.z = 20.51;
-    server.send_message(server.run(), "aboba", MessageType::EVENT, a);
+    raptor::RaptorServer server(io, [](Connection::pointer conn) {
+        A a;
+        a.vec.x = 200;
+        a.vec.y = 300;
+        a.vec.z = 20.51;
+
+        conn->send_message("aboba", MessageType::EVENT, a, [](std::error_code ec) {
+            if (ec) std::cerr << "send failed: " << ec.message() << "\n";
+        });
+    });
+
+    io.run();
 }

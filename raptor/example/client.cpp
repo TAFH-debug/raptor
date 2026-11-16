@@ -26,10 +26,24 @@ public:
 };
 
 int main() {
-    raptor::RaptorClient client;
+    asio::io_context io;
+    raptor::RaptorClient client(io);
 
     A a;
-    client.connect("localhost");
-    Message msg = client.read_message(a);
-    std::cout << msg.route << " " << msg.type << " " << a.vec.z << "\n";
+    client.connect("localhost", [&a](std::error_code ec, Connection::pointer conn) {
+        if (ec) {
+            std::cerr << "connect failed: " << ec.message() << "\n";
+            return;
+        }
+
+        conn->read_message(a, [&a, conn](std::error_code ec, Message msg) {
+            if (ec) {
+                std::cerr << "read failed: " << ec.message() << "\n";
+                return;
+            }
+            std::cout << msg.route << " " << msg.type << " " << a.vec.z << "\n";
+        });
+    });
+
+    io.run();
 }

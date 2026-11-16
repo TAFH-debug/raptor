@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <serializable.h>
 
+using namespace raptor;
+
 class Factory {
 public:
     using Creator = std::function<std::unique_ptr<Serializable>()>;

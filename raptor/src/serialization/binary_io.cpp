@@ -24,16 +24,17 @@ std::uint64_t read_le(std::istream& st, std::size_t width) {
 }
 
 void write_string(std::ostream& st, const std::string& s) {
-    if (s.size() > UINT32_MAX) throw std::runtime_error(std::string("string too long"));;
-    write_le(st, s.size(), kLenWidth);
+    if (s.find('\0') != std::string::npos)
+        throw std::runtime_error(std::string("RaptorError: string contains '\\0'"));
     st.write(s.data(), static_cast<std::streamsize>(s.size()));
+    st.put('\0');
 }
 
 std::string read_string(std::istream& st) {
-    auto len = static_cast<std::size_t>(read_le(st, kLenWidth));
-    std::string s(len, '\0');
-    if (!st.read(s.data(), static_cast<std::streamsize>(len)))
-        throw std::runtime_error(std::string("unexpected end of stream"));
+    std::string s;
+    // eof means the stream ended before the terminator was found.
+    if (!std::getline(st, s, '\0') || st.eof())
+        throw std::runtime_error(std::string("RaptorError: unterminated string"));
     return s;
 }
 
