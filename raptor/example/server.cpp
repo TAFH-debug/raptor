@@ -2,6 +2,7 @@
 #include <macro_serialize.h>
 #include <network_io.h>
 #include <asio.hpp>
+#include <log.h>
 
 #include <iostream>
 
