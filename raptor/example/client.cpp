@@ -24,6 +24,14 @@ public:
     RAPTOR_CLASS(a, b, vec)
 };
 
+class B : public Serializable {
+public:
+    int c;
+    int g;
+
+    RAPTOR_CLASS(c, g)
+};
+
 int main() {
     asio::io_context io;
     raptor::RaptorClient client(io);
@@ -48,9 +56,9 @@ int main() {
         for (int i = 0; i < calls; ++i) {
             A req = a;
             req.a = i;
-            conn->invoke<A>("some_rpc_func", req, [i, done](std::error_code ec, A res) {
+            conn->invoke<B>("some_rpc_func", req, [i, done](std::error_code ec, B res) {
                 if (ec) raptor::log::error("call {} failed: {}", i, ec.message());
-                else raptor::log::info("call {}: a={} z={}", i, res.a, res.vec.z);
+                else raptor::log::info("call {}: a={} z={}", i, res.c, res.g);
                 done();
             });
         }

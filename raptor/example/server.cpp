@@ -20,11 +20,21 @@ public:
     RAPTOR_CLASS(a, b, vec)
 };
 
+class B : public raptor::Serializable {
+public:
+    int c;
+    int g;
+
+    RAPTOR_CLASS(c, g)
+};
+
 using namespace raptor;
 
-A some_rpc_func(A a) {
-    a.vec.z += 10;
-    return a;
+B some_rpc_func(A a) {
+    B b{};
+    b.c = 20;
+    b.g = a.vec.z / 0;
+    return b;
 }
 
 int main() {
