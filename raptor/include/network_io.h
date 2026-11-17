@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <system_error>
+#include <map>
 
 #include <asio.hpp>
 #include <message.h>
@@ -41,6 +42,17 @@ namespace raptor {
         // `data` must stay alive until `handler` runs. One read at a time per connection.
         void read_message(Serializable& data, ReadHandler handler);
 
+        template<typename T>
+        void invoke(std::string rpc_name, Serializable& obj, std::function<void(T)> handler) {
+            send_message(rpc_name, MessageType::REQUEST, obj);
+            auto data = std::make_shared<T>();
+            read_message(*data, [data, handler](std::error_code ec, Message msg) {
+                handler(*data);
+            });
+        }
+
+        void register_handler(std::string rpc_name, std::function<std::unique_ptr<Serializable>(Serializable&)> handler);
+
         void close();
 
     private:
@@ -65,12 +77,12 @@ namespace raptor {
         std::array<unsigned char, 6> handshake_buf_{};
         std::array<unsigned char, 4> len_buf_{};
         std::string read_buf_;
+        std::map<std::string, std::function<std::unique_ptr<Serializable>(Serializable&)>> _handlers; 
     };
 
     class RaptorServer {
     public:
         using ConnectHandler = std::function<void(Connection::pointer)>;
-
         RaptorServer(asio::io_context& io, ConnectHandler on_connect, unsigned short port = PORT);
         RaptorServer(const RaptorServer&) = delete;
         RaptorServer& operator=(const RaptorServer&) = delete;

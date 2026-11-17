@@ -137,33 +137,16 @@ void Connection::send_handshake(Handler handler) {
         });
 }
 
+void Connection::register_handler(std::string rpc_name, std::function<std::unique_ptr<Serializable>(Serializable&)> handler) {
+    _handlers[rpc_name] = handler;
+}
+
 void Connection::close() {
     asio::post(socket_.get_executor(), [self = shared_from_this()] {
         std::error_code ignored;
         self->socket_.shutdown(tcp::socket::shutdown_both, ignored);
         self->socket_.close(ignored);
     });
-}
-
-RaptorClient::RaptorClient(asio::io_context& io) : io_(io), resolver_(io) {}
-
-void RaptorClient::connect(const std::string& host, unsigned short port, ConnectHandler handler) {
-    resolver_.async_resolve(host, std::to_string(port),
-        [this, handler = std::move(handler)](std::error_code ec, tcp::resolver::results_type endpoints) mutable {
-            if (ec) return handler(ec, nullptr);
-
-            auto connection = Connection::create(io_);
-            asio::async_connect(connection->socket(), endpoints,
-                [connection, handler = std::move(handler)](std::error_code ec, const tcp::endpoint&) mutable {
-                    if (ec) return handler(ec, nullptr);
-
-                    connection->send_handshake(
-                        [connection, handler = std::move(handler)](std::error_code ec) {
-                            if (ec) return handler(ec, nullptr);
-                            handler({}, connection);
-                        });
-                });
-        });
 }
 
 } // namespace raptor

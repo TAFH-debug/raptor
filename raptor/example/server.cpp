@@ -26,17 +26,27 @@ public:
 
 using namespace raptor;
 
+A some_rpc_func(A a) {
+    return a;
+}
+
 int main() {
     asio::io_context io;
 
-    raptor::RaptorServer server(io, [](Connection::pointer conn) {
-        A a;
-        a.vec.x = 200;
-        a.vec.y = 300;
-        a.vec.z = 20.51;
+    A a;
+    raptor::RaptorServer server(io, [&a](Connection::pointer conn) {
+        // conn->send_message("aboba", MessageType::EVENT, a, [](std::error_code ec) {
+        //     if (ec) std::cerr << "send failed: " << ec.message() << "\n";
+        // });
 
-        conn->send_message("aboba", MessageType::EVENT, a, [](std::error_code ec) {
-            if (ec) std::cerr << "send failed: " << ec.message() << "\n";
+        conn->read_message(a, [&a, conn](std::error_code ec, Message msg) {
+            if (ec) {
+                std::cerr << "read failed: " << ec.message() << "\n";
+                return;
+            }
+            if (msg.type == MessageType::REQUEST) {
+                conn->send_message(msg.route, MessageType::RESPONSE, some_rpc_func(a));
+            }
         });
     });
 
