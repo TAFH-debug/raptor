@@ -1,10 +1,6 @@
-#include <serializable.h>
 #include <macro_serialize.h>
 #include <network_io.h>
-#include <asio.hpp>
 #include <log.h>
-
-#include <iostream>
 
 class Vector : public raptor::Serializable {
 public:
@@ -27,28 +23,19 @@ public:
 using namespace raptor;
 
 A some_rpc_func(A a) {
+    a.vec.z += 10;
     return a;
 }
 
 int main() {
     asio::io_context io;
 
-    A a;
-    raptor::RaptorServer server(io, [&a](Connection::pointer conn) {
-        // conn->send_message("aboba", MessageType::EVENT, a, [](std::error_code ec) {
-        //     if (ec) std::cerr << "send failed: " << ec.message() << "\n";
-        // });
+    raptor::RaptorServer server(io, [](Connection::pointer conn) {
+        conn->register_handler<A>("some_rpc_func", some_rpc_func);
 
-        conn->read_message(a, [&a, conn](std::error_code ec, Message msg) {
-            if (ec) {
-                std::cerr << "read failed: " << ec.message() << "\n";
-                return;
-            }
-            if (msg.type == MessageType::REQUEST) {
-                conn->send_message(msg.route, MessageType::RESPONSE, some_rpc_func(a));
-            }
-        });
+        conn->send_message("welcome", MessageType::EVENT, A{});
     });
 
+    raptor::log::info("listening on port {}", PORT);
     io.run();
 }

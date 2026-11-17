@@ -18,6 +18,7 @@ void RaptorClient::connect(const std::string& host, unsigned short port, Connect
                         [connection, handler = std::move(handler)](std::error_code ec) {
                             if (ec) return handler(ec, nullptr);
                             handler({}, connection);
+                            connection->start();
                         });
                 });
         });

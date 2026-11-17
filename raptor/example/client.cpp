@@ -1,9 +1,8 @@
-#include <serializable.h>
 #include <macro_serialize.h>
 #include <network_io.h>
+#include <log.h>
 
-#include <fstream>
-#include <iostream>
+#include <memory>
 
 using namespace raptor;
 
@@ -29,26 +28,36 @@ int main() {
     asio::io_context io;
     raptor::RaptorClient client(io);
 
-    A a;
+    A a{};
     a.vec.x = 200;
     a.vec.y = 300;
-    a.vec.z = 20.51;
-    client.connect("localhost", [&a](std::error_code ec, Connection::pointer conn) {
+    a.vec.z = 20.51f;
+
+    client.connect("localhost", [a](std::error_code ec, Connection::pointer conn) {
         if (ec) {
-            std::cerr << "connect failed: " << ec.message() << "\n";
+            raptor::log::error("connect failed: {}", ec.message());
             return;
         }
 
-        // conn->read_message(a, [&a, conn](std::error_code ec, Message msg) {
-        //     if (ec) {
-        //         std::cerr << "read failed: " << ec.message() << "\n";
-        //         return;
-        //     }
-        //     std::cout << msg.route << " " << msg.type << " " << a.vec.z << "\n";
-        // });
+        conn->on_event<A>("welcome", [](const A&) { raptor::log::info("server says welcome"); });
 
-        conn->invoke<A>("some_rpc_func", a, [](A b) {
-            std::cout << b.vec.z << "\n";
+        constexpr int calls = 3;
+        auto remaining = std::make_shared<int>(calls + 1);
+        auto done = [conn, remaining] { if (--*remaining == 0) conn->close(); };
+
+        for (int i = 0; i < calls; ++i) {
+            A req = a;
+            req.a = i;
+            conn->invoke<A>("some_rpc_func", req, [i, done](std::error_code ec, A res) {
+                if (ec) raptor::log::error("call {} failed: {}", i, ec.message());
+                else raptor::log::info("call {}: a={} z={}", i, res.a, res.vec.z);
+                done();
+            });
+        }
+
+        conn->invoke<A>("no_such_func", a, [done](std::error_code ec, A) {
+            raptor::log::info("no_such_func -> {}", ec.message());
+            done();
         });
     });
 

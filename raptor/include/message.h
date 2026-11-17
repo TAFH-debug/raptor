@@ -1,19 +1,23 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace raptor {
 
-enum MessageType {
+
+enum MessageType : std::uint8_t {
     EVENT,
     TEXT,
     REQUEST,
-    RESPONSE
+    RESPONSE,
+    FAILURE,
 };
 
 struct Message {
     std::string route;
-    MessageType type;
+    MessageType type = EVENT;
+    std::uint32_t id = 0;
 };
 
 }
